@@ -66,8 +66,10 @@ function useLoginUser() {
   return useMutation({
     mutationFn: loginUser,
     onSuccess: (data) => {
-      toast.success(data.message);
-      navigate("/dashboard");
+      if (data?.user?.isVerified) {
+        toast.success(data.message);
+        navigate("/dashboard");
+      } else navigate("/authentication/register/email-verification");
     },
     onError: (error) => {
       if (error?.status == 403) {
