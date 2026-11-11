@@ -125,6 +125,7 @@ const loginUser = asyncHandler(async (req, res) => {
         email: user.email,
         role: user.role,
         defaultPicture: user.defaultPicture,
+        isVerified: user.isVerified,
       }),
     );
 });
@@ -179,8 +180,7 @@ const verifyUser = asyncHandler(async (req, res) => {
   if (!otp) throw new ApiError(401, "Otp has expired");
 
   const isOtpValid = await otp.verifyOtp(clientOtp);
-
-  if (!isOtpValid) throw new ApiError(404, "Otp is invalid");
+  if (!isOtpValid) throw new ApiError(401, "Otp is invalid");
 
   const session = await mongoose.startSession();
   try {
@@ -188,8 +188,7 @@ const verifyUser = asyncHandler(async (req, res) => {
       const updatedUser = await User.findByIdAndUpdate(
         req.user._id,
         { $set: { isVerified: true } },
-        { session },
-        { returnDocument: "after" },
+        { session, returnDocument: "after" },
       );
 
       await Otp.deleteOne({ email, type: "verification" }, { session });
@@ -264,14 +263,12 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const otp = await sendResetPasswordOtp(user);
   if (!otp) throw new ApiError(400, "email sending failed");
 
-  res
-    .status(200)
-    .json(
-      new ApiResponse(200, "If user exists otp has sended to reset password", {
-        username: user.username,
-        email: user.email,
-      }),
-    );
+  res.status(200).json(
+    new ApiResponse(200, "If user exists otp has sended to reset password", {
+      username: user.username,
+      email: user.email,
+    }),
+  );
 });
 
 const resetPassword = asyncHandler(async (req, res) => {
