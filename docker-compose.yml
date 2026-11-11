@@ -1,10 +1,18 @@
 services:
   mongo:
     image: mongo:8.0
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     volumes:
       - mongoData:/data/db
     ports:
       - "27017:27017"
+    healthcheck:
+      test: >
+        mongosh --eval "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}).ok }"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
@@ -28,8 +36,10 @@ services:
       - ./Backend:/usr/src/app
       - /usr/src/app/node_modules
     depends_on:
-      - mongo
-      - redis
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   frontend:
     build:
