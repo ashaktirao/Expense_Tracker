@@ -40,7 +40,8 @@ function useRegisterUser() {
     },
     onError: (error) => {
       if (error?.status == 409) toast.error("User already exists");
-      else toast.error("All details are required");
+      else toast.error(error?.message ?? "Something went wrong. Please try again later");
+      console.log(error);
     },
   });
 }
@@ -77,7 +78,7 @@ function useLoginUser() {
         navigate("/authentication/register/email-verification");
       } else if (error?.status == "401") toast.error("Incorrect password");
       else if (error?.status == "404") toast.error("User not exists");
-      else toast.error("Username and password is required");
+      else toast.error(error?.message ?? "Something went wrong. Please try again later");
     },
   });
 }
@@ -100,7 +101,7 @@ function useLogoutUser() {
   return useMutation({
     mutationFn: logoutUser,
     onSuccess: (res) => {
-      queryClient.clear;
+      queryClient.clear();
       toast.success("You are logged out successfully");
       navigate("/authentication/login");
     },
