@@ -1,18 +1,26 @@
 services:
   mongo:
     image: mongo:8.0
-    command: ["--replSet", "rs0", "--bind_ip_all"]
+    command: ["--replSet", "rs0", "--bind_ip_all", "--quiet"]
     volumes:
       - mongoData:/data/db
     ports:
       - "27017:27017"
     healthcheck:
       test: >
-        mongosh --eval "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}).ok }"
-      interval: 5s
+        mongosh --port 27017 --quiet --eval "
+        try {
+          if (db.runCommand({ hello: 1 }).isWritablePrimary) { quit(0); }
+        } catch (e) {}
+        try {
+          rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] });
+        } catch (e) {}
+        quit(1);
+        "
+      interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 5s
 
   redis:
     image: redis:7-alpine
@@ -32,6 +40,9 @@ services:
       - "4000:4000"
     env_file:
       - ./Backend/.env
+    environment:
+      - PORT=4000
+      - MONGODB_URI=mongodb://mongo:27017/XseTrack?replicaSet=rs0&directConnection=true
     volumes:
       - ./Backend:/usr/src/app
       - /usr/src/app/node_modules
